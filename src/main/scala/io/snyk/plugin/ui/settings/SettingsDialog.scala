@@ -1,17 +1,20 @@
 package io.snyk.plugin.ui.settings
 
+import java.awt.event.ActionEvent
 import java.net.URL
 
-import com.intellij.openapi.ui.{ComponentValidator, ValidationInfo}
+import com.intellij.openapi.ui.{ComponentValidator, TextFieldWithBrowseButton, ValidationInfo}
 import javax.swing.{JButton, JCheckBox, JComponent, JLabel, JPanel, JSplitPane, JTextField}
 import java.awt.{Dimension, Insets}
+import java.io.File
 
+import com.intellij.openapi.application.PathManager
+import com.intellij.openapi.progress.{ProgressIndicator, ProgressManager, Task}
 import com.intellij.openapi.project.Project
-
 import com.intellij.ui.{DocumentAdapter, IdeBorderFactory}
 import com.intellij.uiDesigner.core.{GridConstraints => UIGridConstraints, GridLayoutManager => UIGridLayoutManager}
 import com.intellij.uiDesigner.core.Spacer
-
+import com.intellij.util.io.HttpRequests
 import javax.swing.event.DocumentEvent
 
 class SettingsDialog(project: Project) {
@@ -22,6 +25,8 @@ class SettingsDialog(project: Project) {
   private val customEndpointTextField: JTextField = new JTextField()
   private val organizationTextField: JTextField = new JTextField()
   private val ignoreUnknownCACheckBox: JCheckBox = new JCheckBox()
+  private val versionTextField = new JTextField()
+  private val cliPathTextField = new JTextField()
 
   private val rootPanel: JPanel = new JPanel()
 
@@ -268,7 +273,6 @@ class SettingsDialog(project: Project) {
       )
     )
 
-    val versionTextField = new JTextField
     versionTextField.setEditable(false)
     versionTextField.setEnabled(true)
     cliSetupPanel.add(
@@ -311,9 +315,10 @@ class SettingsDialog(project: Project) {
       )
     )
 
-    val cliPathTextField = new JTextField
+    cliPathTextField.setText(PathManager.getPluginsPath)
+
     cliSetupPanel.add(
-      cliPathTextField,
+      new TextFieldWithBrowseButton(cliPathTextField),
       new UIGridConstraints(
         1,
         1,
@@ -351,6 +356,35 @@ class SettingsDialog(project: Project) {
         false
       )
     )
+
+    downloadButton.addActionListener((actionEvent: ActionEvent) => {
+      val title = "Download"
+
+      ProgressManager.getInstance().run(new Task.Modal(project, title, true) {
+        override def run(indicator: ProgressIndicator): Unit = {
+          indicator.setIndeterminate(true)
+          indicator.pushState()
+
+          try {
+            indicator.setText(title)
+
+            val tagName = "v1.336.0"
+            val snykWrapperFileName = "snyk-macos"
+
+            val url = new URL(String.format("https://github.com/snyk/snyk/releases/download/%s/%s", tagName, snykWrapperFileName)).toString
+
+            HttpRequests
+              .request(url)
+              .productNameAsUserAgent()
+              .saveToFile(new File(cliPathTextField.getText, "snyk-macos"), indicator)
+
+            versionTextField.setText(tagName)
+          } finally {
+            indicator.popState()
+          }
+        }
+      })
+    })
 
     customEndpointLabel.setLabelFor(customEndpointTextField)
     organizationLabel.setLabelFor(organizationTextField)

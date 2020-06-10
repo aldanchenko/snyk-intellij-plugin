@@ -10,7 +10,7 @@ case class SnykConfigurable(project: Project) extends SearchableConfigurable {
 
   override def getId: String = "preference.SnykConfigurable"
 
-  override def getDisplayName: String = "Snyk"
+  override def getDisplayName: String = SnykConfigurable.DisplayName
 
   override def createComponent(): JComponent = {
     settingsDialog.getRootPanel
@@ -19,4 +19,8 @@ case class SnykConfigurable(project: Project) extends SearchableConfigurable {
   override def isModified: Boolean = settingsDialog.isModified
 
   override def apply(): Unit = settingsDialog.apply
+}
+
+object SnykConfigurable {
+  val DisplayName = "Snyk"
 }

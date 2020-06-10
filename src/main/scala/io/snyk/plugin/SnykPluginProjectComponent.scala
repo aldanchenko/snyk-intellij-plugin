@@ -1,10 +1,14 @@
 package io.snyk.plugin
 
 import com.intellij.diagnostic.ReportMessages
-import com.intellij.notification.{NotificationListener, NotificationType}
+import com.intellij.notification.{Notification, NotificationListener, NotificationType}
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.ProjectComponent
 import com.intellij.openapi.project.Project
+import com.intellij.notification.NotificationAction
+import com.intellij.openapi.options.ShowSettingsUtil
+import io.snyk.plugin.ui.settings.SnykConfigurable
 import io.snyk.plugin.ui.state.SnykPluginState
 
 object SnykPluginProjectComponent {
@@ -33,9 +37,16 @@ class SnykPluginProjectComponent(project: Project) extends ProjectComponent {
         NotificationType.WARNING,
         NotificationListener.URL_OPENING_LISTENER)
         .setImportant(false)
+        .addAction(getSetupCliAction)
         .notify(project);
     }
   }
+
+  private def getSetupCliAction = NotificationAction.create("Configure", (event: AnActionEvent, notification: Notification) => {
+    if (!project.isDisposed) {
+      ShowSettingsUtil.getInstance.showSettingsDialog(project, SnykConfigurable.DisplayName)
+    }
+  })
 
   override def projectClosed(): Unit = {
     SnykPluginState.removeForProject(project)
